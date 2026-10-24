@@ -75,11 +75,18 @@ export async function register(_prev: RegisterState, fd: FormData): Promise<Regi
       phone,
     });
     if (prErr) throw new Error(prErr.message);
-  } catch {
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    console.error("[register] failed:", detail);
     // Roll back so the user can retry cleanly (cascade removes profile rows)
     await admin.auth.admin.deleteUser(uid);
     await admin.storage.from("profile-photos").remove([`${uid}/photo.jpg`]);
-    return { error: "Registration failed while saving your details. Please try again." };
+    await admin.storage.from("cnic-documents").remove([
+      `${uid}/cnic-front.${extOf(front!)}`,
+      `${uid}/cnic-back.${extOf(back!)}`,
+    ]);
+    // TEMPORARY: shows the real reason on screen. Remove ": ${detail}" after fixing.
+    return { error: `Registration failed while saving your details: ${detail}` };
   }
 
   const supabase = await createClient();
