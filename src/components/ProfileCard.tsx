@@ -41,8 +41,10 @@ export function ProfileCard({ profile, percent }: { profile: Profile; percent?: 
           {profile.full_name}
           {profile.is_verified && <BadgeCheck className="h-5 w-5 text-emerald-600" aria-label="Verified" />}
         </h3>
+        {profile.reg_no && <p className="font-mono text-xs text-stone-400">ID: {profile.reg_no}</p>}
         <p className="text-sm text-stone-600">
           {calcAge(profile.dob)} yrs · {labelize(profile.marital_status)}
+          {profile.height_cm ? ` · ${profile.height_cm} cm` : ""}
         </p>
         <p className="flex items-center gap-1.5 text-sm text-stone-600"><MapPin className="h-4 w-4" />{profile.city}</p>
         {profile.profession && <p className="flex items-center gap-1.5 text-sm text-stone-600"><Briefcase className="h-4 w-4" />{profile.profession}</p>}

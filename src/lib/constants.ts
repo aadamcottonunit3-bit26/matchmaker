@@ -46,3 +46,24 @@ export const PAYMENT_ACCOUNTS = [
   { method: "EasyPaisa", detail: "03XX-XXXXXXX (Account title: Your Bureau Name)" },
   { method: "Bank Transfer", detail: "Bank / IBAN: PKXX XXXX XXXX XXXX XXXX XXXX" },
 ];
+
+export const SECTS = [
+  { value: "sunni", label: "Sunni" },
+  { value: "shia", label: "Shia" },
+  { value: "other", label: "Other" },
+];
+
+export const MARRIAGE_TIMELINE = [
+  { value: "asap", label: "As soon as possible" },
+  { value: "within_6_months", label: "Within 6 months" },
+  { value: "within_1_year", label: "Within 1 year" },
+  { value: "no_hurry", label: "No hurry" },
+];
+
+export const REPORT_REASONS = [
+  { value: "fake_profile", label: "Fake profile / false information" },
+  { value: "abusive", label: "Abusive or disrespectful behaviour" },
+  { value: "scam", label: "Asking for money / scam" },
+  { value: "inappropriate_photo", label: "Inappropriate photo" },
+  { value: "other", label: "Other" },
+];

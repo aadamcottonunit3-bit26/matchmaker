@@ -8,6 +8,8 @@ import {
   FAMILY_BACKGROUND,
   LIFESTYLE_FIELDS,
   MARITAL,
+  MARRIAGE_TIMELINE,
+  SECTS,
 } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 import { Card, Field, Input, Select, Textarea } from "@/components/ui";
@@ -103,6 +105,15 @@ export function ProfileFields({ defaults }: { defaults?: Partial<Profile> }) {
         </Field>
         <Field label="Family background">
           <Select name="family_background" defaultValue={d.family_background ?? ""} placeholder="Select…" options={FAMILY_BACKGROUND} />
+        </Field>
+        <Field label="Height (cm)" hint="Optional. Example: 170">
+          <Input name="height_cm" type="number" min={120} max={230} step={1} inputMode="numeric" defaultValue={d.height_cm ?? ""} />
+        </Field>
+        <Field label="Sect" hint="Optional.">
+          <Select name="sect" defaultValue={d.sect ?? ""} placeholder="Prefer not to say" options={SECTS} />
+        </Field>
+        <Field label="When do you want to marry?" hint="Optional.">
+          <Select name="marriage_timeline" defaultValue={d.marriage_timeline ?? ""} placeholder="Select…" options={MARRIAGE_TIMELINE} />
         </Field>
         <div className="sm:col-span-2">
           <Field label="About me">

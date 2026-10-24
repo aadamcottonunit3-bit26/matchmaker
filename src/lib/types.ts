@@ -8,6 +8,7 @@ export interface Profile {
   status: ProfileStatus;
   is_verified: boolean;
   verified_at: string | null;
+  reg_no: string | null;
   full_name: string;
   gender: Gender;
   marital_status: MaritalStatus;
@@ -20,6 +21,9 @@ export interface Profile {
   family_background: string | null;
   lifestyle: Record<string, string>;
   about: string | null;
+  height_cm: number | null;
+  sect: string | null;
+  marriage_timeline: string | null;
   pref_age_min: number;
   pref_age_max: number;
   pref_marital: MaritalStatus[];

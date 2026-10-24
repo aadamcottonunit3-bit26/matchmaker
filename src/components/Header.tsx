@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Heart, BadgeCheck } from "lucide-react";
 import { getMe } from "@/lib/auth";
-import { logout } from "@/app/login/actions";
+import { logout } from "@/app/(site)/login/actions";
 import { buttonClass } from "@/components/ui";
 
 export async function Header() {
@@ -10,6 +10,7 @@ export async function Header() {
   const links = me
     ? [
         { href: "/dashboard", label: "Matches" },
+        { href: "/shortlist", label: "Shortlist" },
         { href: "/messages", label: "Messages" },
         { href: "/photo-requests", label: "Photo Requests" },
         { href: "/billing", label: "Plans" },
@@ -19,6 +20,7 @@ export async function Header() {
     : [
         { href: "/pricing", label: "Pricing" },
         { href: "/about-us", label: "About" },
+        { href: "/#faq", label: "FAQ" },
       ];
 
   return (

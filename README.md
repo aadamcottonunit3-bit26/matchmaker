@@ -51,3 +51,8 @@ update public.profiles set role='admin', status='verified', is_verified=true whe
 - A database trigger stops members from editing their own `role`, `status`, `is_verified`, `plan_id` or `valid_until`.
 - Photos are served through `/api/photos/[id]`; for blurred photos the original never reaches an unapproved viewer.
 - Before going live: set a strong admin password, enable Supabase backups, and add rate limiting / CAPTCHA on `/register` if you see abuse.
+
+## 5. Upgrade 0002 (admin panel, shortlist, reports, selfie check)
+1. Supabase → SQL Editor → run `supabase/migrations/0002_upgrade.sql` **once, before deploying this code**.
+2. Optional: set `NEXT_PUBLIC_WHATSAPP_NUMBER` and `NEXT_PUBLIC_CONTACT_PHONE` in Vercel for the WhatsApp button and contact buttons.
+3. The admin panel is now a sidebar layout (mobile: slide-in menu). The members list supports search by name, CNIC, mobile and registration no.

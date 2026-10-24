@@ -7,6 +7,7 @@ const PROTECTED = [
   "/my-profile",
   "/messages",
   "/photo-requests",
+  "/shortlist",
   "/billing",
   "/admin",
 ];

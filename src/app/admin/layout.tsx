@@ -1,30 +1,23 @@
-import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { AdminShell } from "@/components/admin/AdminShell";
 
-const nav = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/profiles", label: "Profiles" },
-  { href: "/admin/payments", label: "Payments" },
-  { href: "/admin/activity", label: "Activity" },
-  { href: "/admin/messages", label: "Messages" },
-  { href: "/admin/cms", label: "CMS" },
-  { href: "/admin/audit", label: "Audit logs" },
-];
+const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  const supabase = await createClient();
+
+  const [profiles, payments, reports] = await Promise.all([
+    count(supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending").eq("role", "member")),
+    count(supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending")),
+    // Before migration 0002 this table does not exist: the query just returns no count (0).
+    count(supabase.from("profile_reports").select("id", { count: "exact", head: true }).eq("status", "open")),
+  ]);
+
   return (
-    <div>
-      <div className="border-b border-stone-200 bg-stone-900">
-        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 sm:px-6">
-          {nav.map((n) => (
-            <Link key={n.href} href={n.href} className="whitespace-nowrap px-3 py-3 text-sm text-stone-200 hover:bg-stone-800 hover:text-white">
-              {n.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
+    <AdminShell adminName={admin.full_name} badges={{ profiles, payments, reports }}>
       {children}
-    </div>
+    </AdminShell>
   );
 }
