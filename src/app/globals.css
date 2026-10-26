@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fffaf8;
+  --foreground: #1c1917;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Comfortable tap targets on mobile */
+@media (max-width: 640px) {
+  input, select, textarea, button { font-size: 16px; }
+}
