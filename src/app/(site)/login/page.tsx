@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getUser } from "@/lib/auth";
+import { getMe, getUser } from "@/lib/auth";
 import { safeNext } from "@/lib/utils";
 import { Card } from "@/components/ui";
 import { LoginForm } from "./LoginForm";
@@ -14,7 +14,10 @@ export default async function LoginPage({
 }) {
   const { next } = await searchParams;
   const target = safeNext(next);
-  if (await getUser()) redirect(target);
+  if (await getUser()) {
+    const me = await getMe();
+    redirect(me?.role === "admin" ? "/admin" : target);
+  }
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-12">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  Activity, CreditCard, Flag, Globe, Heart, LayoutDashboard, LogOut, Menu, MessageSquare,
+  Activity, CreditCard, Flag, Heart, LayoutDashboard, LogOut, Menu, MessageSquare,
   ScrollText, Settings, UserCog, Users, X,
 } from "lucide-react";
 import { logout } from "@/app/(site)/login/actions";
@@ -115,12 +115,6 @@ export function AdminShell({
         </nav>
 
         <div className="space-y-1 border-t border-white/10 p-3">
-          <Link
-            href="/"
-            className="flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-medium text-teal-100 hover:bg-white/10 hover:text-white"
-          >
-            <Globe className="h-5 w-5" /> View website
-          </Link>
           <form action={logout}>
             <button className="flex w-full items-center gap-3 rounded-xl bg-white/10 px-3 py-3 text-[15px] font-medium text-white hover:bg-white/20">
               <LogOut className="h-5 w-5" /> Logout

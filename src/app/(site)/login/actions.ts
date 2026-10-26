@@ -14,8 +14,12 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   if (!email || !password) return { error: "Enter your email and password." };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: "Invalid email or password." };
+
+  // Admins only ever see the admin dashboard.
+  const { data: prof } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+  if (prof?.role === "admin") redirect(next.startsWith("/admin") ? next : "/admin");
 
   redirect(next);
 }
