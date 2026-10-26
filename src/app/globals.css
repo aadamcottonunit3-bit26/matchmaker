@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+/* ---------- Urdu fonts ----------
+   Urdu (Arabic-script) text anywhere on the site uses Jameel Noori Nastaleeq.
+   - It is used if installed on the visitor's device, or if you add the file
+     public/fonts/JameelNooriNastaleeq.ttf (see public/fonts/README.txt).
+   - Otherwise the bundled open-licensed Noto Nastaliq Urdu is used (also Nastaliq style).
+   unicode-range keeps these fonts for Urdu letters only; English text keeps its normal font. */
+@font-face {
+  font-family: "Jameel Noori Nastaleeq";
+  src: local("Jameel Noori Nastaleeq"), local("JameelNooriNastaleeq"), local("Jameel Noori Nastaleeq Regular"),
+    url("/fonts/JameelNooriNastaleeq.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
+}
+@font-face {
+  font-family: "Noto Nastaliq Urdu";
+  src: url("/fonts/noto-nastaliq-urdu-arabic-400-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F;
+}
+
+
 :root {
   --background: #fffaf8;
   --foreground: #1c1917;
@@ -8,7 +33,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 body {
@@ -33,6 +59,11 @@ body {
   background-size: 60px 60px;
 }
 .font-urdu {
-  font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Noto Naskh Arabic", "Segoe UI", serif;
-  line-height: 1.9;
+  font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", "Noto Naskh Arabic", "Segoe UI", serif;
+  font-weight: 400;
+  line-height: 2;
+}
+/* Nastaliq letters are tall: give Urdu text more line height so lines do not collide. */
+:lang(ur) {
+  line-height: 2;
 }
