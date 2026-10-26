@@ -6,12 +6,26 @@ export function cmsMediaUrl(path: string) {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/cms-media/${path}`;
 }
 
+/** Top banner images (home page hero). Empty = the default designed hero is shown. */
 export async function getSliders() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("cms_sliders")
     .select("*")
     .eq("is_active", true)
+    .eq("placement", "hero")
+    .order("sort_order");
+  return data ?? [];
+}
+
+/** Gallery photos (home page "families" section). Empty = the section is hidden. */
+export async function getGallery() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("cms_sliders")
+    .select("*")
+    .eq("is_active", true)
+    .eq("placement", "gallery")
     .order("sort_order");
   return data ?? [];
 }

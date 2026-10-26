@@ -56,3 +56,9 @@ update public.profiles set role='admin', status='verified', is_verified=true whe
 1. Supabase → SQL Editor → run `supabase/migrations/0002_upgrade.sql` **once, before deploying this code**.
 2. Optional: set `NEXT_PUBLIC_WHATSAPP_NUMBER` and `NEXT_PUBLIC_CONTACT_PHONE` in Vercel for the WhatsApp button and contact buttons.
 3. The admin panel is now a sidebar layout (mobile: slide-in menu). The members list supports search by name, CNIC, mobile and registration no.
+
+## 6. Upgrade 0003 (personal details)
+Run `supabase/migrations/0003_personal_details.sql` once in Supabase before deploying. It adds children, weight, body type, skin tone, mother tongue, hobbies and personality traits. Height is now chosen in feet + inches.
+
+## 7. Upgrade 0004 (income range + home gallery)
+Run `supabase/migrations/0004_income_range_and_gallery.sql` once in Supabase before deploying. It adds the upper end of the "monthly income required" range and lets the admin choose where a home image is shown (top banner or gallery) from Admin → Setup → Home images.

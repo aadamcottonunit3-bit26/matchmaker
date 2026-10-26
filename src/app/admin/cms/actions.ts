@@ -19,6 +19,7 @@ export async function createSlider(fd: FormData) {
   await requireAdmin();
   const image = fd.get("image") as File | null;
   if (validateImage(image, "Image")) return;
+  const placement = fd.get("placement") === "gallery" ? "gallery" : "hero";
   const path = `sliders/${Date.now()}.${extOf(image!)}`;
   await uploadImage("cms-media", path, image!);
   const supabase = await createClient();
@@ -28,6 +29,7 @@ export async function createSlider(fd: FormData) {
     link_url: strOrNull(fd.get("link_url")),
     sort_order: numOrNull(fd.get("sort_order")) ?? 0,
     image_path: path,
+    placement,
   });
   done("sliders");
 }

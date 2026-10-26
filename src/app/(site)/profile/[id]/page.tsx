@@ -7,7 +7,11 @@ import { getRequestInfo } from "@/lib/request-info";
 import { scoreMatch } from "@/lib/matching";
 import { ageLabel } from "@/lib/age";
 import { formatPKR, labelize } from "@/lib/utils";
-import { MARRIAGE_TIMELINE, REPORT_REASONS } from "@/lib/constants";
+import {
+  BODY_TYPES, MARRIAGE_TIMELINE, MOTHER_TONGUES, PERSONALITY_TRAITS, REPORT_REASONS, SKIN_TONES, optionLabel,
+} from "@/lib/constants";
+import { formatHeight } from "@/lib/height";
+import { incomeRangeLabel } from "@/lib/income";
 import type { Profile } from "@/lib/types";
 import { Alert, Badge, Card, Label, PageContainer, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -167,11 +171,32 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               <Row label="Profession" value={profile.profession} />
               <Row label="Monthly income" value={profile.monthly_income_pkr ? formatPKR(profile.monthly_income_pkr) : null} />
               <Row label="Family background" value={labelize(profile.family_background)} />
-              <Row label="Height" value={profile.height_cm ? `${profile.height_cm} cm` : null} />
+              {profile.children_count !== null && (
+                <Row label="Children" value={profile.children_count === 0 ? "No children" : profile.children_count >= 6 ? "6 or more" : String(profile.children_count)} />
+              )}
+              <Row label="Height" value={formatHeight(profile.height_cm)} />
+              <Row label="Weight" value={profile.weight_kg ? `${profile.weight_kg} kg` : null} />
+              <Row label="Body type" value={optionLabel(BODY_TYPES, profile.body_type)} />
+              <Row label="Skin tone" value={optionLabel(SKIN_TONES, profile.skin_tone)} />
+              <Row label="Mother tongue" value={optionLabel(MOTHER_TONGUES, profile.mother_tongue)} />
               <Row label="Sect" value={profile.sect ? labelize(profile.sect) : null} />
               <Row label="Wants to marry" value={MARRIAGE_TIMELINE.find((o) => o.value === profile.marriage_timeline)?.label} />
             </dl>
           </Card>
+
+          {((profile.personality ?? []).length > 0 || profile.hobbies) && (
+            <Card>
+              <h2 className="mb-2 font-semibold">Personality &amp; interests</h2>
+              {(profile.personality ?? []).length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {profile.personality.map((t) => (
+                    <Badge key={t} tone="rose">{optionLabel(PERSONALITY_TRAITS, t) ?? t}</Badge>
+                  ))}
+                </div>
+              )}
+              {profile.hobbies && <p className="text-sm text-stone-700"><b>Hobbies:</b> {profile.hobbies}</p>}
+            </Card>
+          )}
 
           {Object.keys(profile.lifestyle ?? {}).length > 0 && (
             <Card>
@@ -192,6 +217,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               <Row label="Cities" value={profile.preferred_cities.join(", ")} />
               <Row label="Education" value={labelize(profile.pref_education)} />
               <Row label="Profession" value={profile.pref_profession} />
+              <Row label="Monthly income" value={incomeRangeLabel(profile.pref_income_min_pkr, profile.pref_income_max_pkr)} />
             </dl>
           </Card>
         </div>

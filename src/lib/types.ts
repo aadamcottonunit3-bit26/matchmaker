@@ -22,6 +22,13 @@ export interface Profile {
   lifestyle: Record<string, string>;
   about: string | null;
   height_cm: number | null;
+  children_count: number | null;
+  weight_kg: number | null;
+  body_type: string | null;
+  skin_tone: string | null;
+  mother_tongue: string | null;
+  hobbies: string | null;
+  personality: string[];
   sect: string | null;
   marriage_timeline: string | null;
   pref_age_min: number;
@@ -30,6 +37,7 @@ export interface Profile {
   pref_education: string | null;
   pref_profession: string | null;
   pref_income_min_pkr: number | null;
+  pref_income_max_pkr: number | null;
   pref_family: string | null;
   pref_lifestyle: Record<string, string>;
   photo_path: string | null;

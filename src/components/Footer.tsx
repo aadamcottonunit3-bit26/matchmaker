@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { Heart, MessageCircle, Phone } from "lucide-react";
+import { MessageCircle, Phone } from "lucide-react";
+import { RingsIcon } from "@/components/home/Ornament";
 import { contactPhone, whatsappDigits } from "@/lib/contact";
 
 export function Footer() {
   const phone = contactPhone();
   const wa = whatsappDigits();
   return (
-    <footer className="mt-auto border-t border-stone-200 bg-white">
+    <footer className="mt-auto border-t-2 border-amber-300/70 bg-white">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-sm text-stone-600 sm:px-6 md:grid-cols-3">
         <div>
-          <p className="flex items-center gap-2 text-lg font-bold text-rose-800">
-            <Heart className="h-5 w-5 fill-rose-700 text-rose-700" /> Rishta Bureau
+          <p className="flex items-center gap-2 font-serif text-xl font-bold text-rose-900">
+            <RingsIcon className="h-7 w-7 text-amber-600" /> Rishta Bureau
           </p>
           <p className="mt-2 max-w-xs">
             Verified profiles, private photos and respectful matchmaking for serious marriage proposals.

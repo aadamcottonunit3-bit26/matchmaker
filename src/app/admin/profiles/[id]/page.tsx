@@ -7,7 +7,10 @@ import { signedUrl } from "@/lib/storage";
 import { logAdminAction } from "@/lib/admin";
 import { ageLabel } from "@/lib/age";
 import { toIntlDigits } from "@/lib/contact";
-import { MARRIAGE_TIMELINE } from "@/lib/constants";
+import {
+  BODY_TYPES, MARRIAGE_TIMELINE, MOTHER_TONGUES, PERSONALITY_TRAITS, SKIN_TONES, optionLabel,
+} from "@/lib/constants";
+import { formatHeight } from "@/lib/height";
 import { formatDate, formatDay, formatPKR, labelize } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 import { Alert, Badge, Card, Label, PageContainer, Textarea } from "@/components/ui";
@@ -81,7 +84,14 @@ export default async function AdminProfileReview({
             <Row k="Profession" v={p.profession} />
             <Row k="Income" v={p.monthly_income_pkr ? formatPKR(p.monthly_income_pkr) : null} />
             <Row k="Family" v={labelize(p.family_background)} />
-            <Row k="Height" v={p.height_cm ? `${p.height_cm} cm` : null} />
+            <Row k="Children" v={p.children_count === null ? null : p.children_count === 0 ? "No children" : p.children_count >= 6 ? "6 or more" : String(p.children_count)} />
+            <Row k="Height" v={formatHeight(p.height_cm)} />
+            <Row k="Weight" v={p.weight_kg ? `${p.weight_kg} kg` : null} />
+            <Row k="Body type" v={optionLabel(BODY_TYPES, p.body_type)} />
+            <Row k="Skin tone" v={optionLabel(SKIN_TONES, p.skin_tone)} />
+            <Row k="Mother tongue" v={optionLabel(MOTHER_TONGUES, p.mother_tongue)} />
+            <Row k="Personality" v={(p.personality ?? []).map((t) => optionLabel(PERSONALITY_TRAITS, t) ?? t).join(", ")} />
+            <Row k="Hobbies" v={p.hobbies} />
             <Row k="Sect" v={p.sect ? labelize(p.sect) : null} />
             <Row k="Wants to marry" v={MARRIAGE_TIMELINE.find((o) => o.value === p.marriage_timeline)?.label} />
             <Row k="Registered" v={formatDate(p.created_at)} />

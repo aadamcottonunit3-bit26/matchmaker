@@ -1,3 +1,5 @@
+import { incomeFit } from "@/lib/income";
+
 /**
  * Two-tier matching.
  *  Tier 1 (hard filters) runs in Postgres: `select * from match_candidates()`.
@@ -14,6 +16,7 @@ export interface MatchProfile {
   pref_education: string | null;
   pref_profession: string | null;
   pref_income_min_pkr: number | null;
+  pref_income_max_pkr: number | null;
   pref_family: string | null;
   pref_lifestyle: Record<string, string>;
 }
@@ -85,11 +88,8 @@ function scoreOneWay(me: MatchProfile, cand: MatchProfile): ScoreBreakdown {
   if (!me.pref_profession) profession = 0.5;
   else profession = norm(cand.profession) === norm(me.pref_profession) ? 1 : 0.2;
 
-  // Income: meets or exceeds minimum = full; partial credit proportional below it
-  let income: number;
-  if (!me.pref_income_min_pkr || me.pref_income_min_pkr <= 0) income = 0.5;
-  else if (cand.monthly_income_pkr == null) income = 0.3;
-  else income = Math.min(1, cand.monthly_income_pkr / me.pref_income_min_pkr);
+  // Income: inside the wished-for range = full; below it = proportional; far above = slightly lower
+  const income = incomeFit(me.pref_income_min_pkr, me.pref_income_max_pkr, cand.monthly_income_pkr);
 
   const familyTarget = me.pref_family ?? me.family_background;
   const family = ordinalScore(cand.family_background, familyTarget, FAMILY_RANK, 3) * WEIGHTS.family;

@@ -8,7 +8,7 @@ import { createSlider, deleteSlider, savePage, savePlan, toggleSlider } from "./
 export const metadata = { title: "Admin · CMS" };
 
 const TABS = [
-  { key: "sliders", label: "Home sliders" },
+  { key: "sliders", label: "Home images" },
   { key: "pages", label: "Static pages" },
   { key: "plans", label: "Pricing / packages" },
 ];
@@ -52,14 +52,28 @@ export default async function AdminCms({ searchParams }: { searchParams: Promise
       {tab === "sliders" && (
         <div className="space-y-6">
           <Card>
-            <h2 className="mb-3 font-semibold">Add slider</h2>
+            <h2 className="mb-1 font-semibold">Add a home page image</h2>
+            <p className="mb-3 text-sm text-stone-600">
+              The home page already looks complete without images. Add images only if you want them.
+              Upload only photos you have permission to use.
+            </p>
             <form action={createSlider} className="grid gap-3 sm:grid-cols-2">
-              <Field label="Title"><Input name="title" /></Field>
-              <Field label="Subtitle"><Input name="subtitle" /></Field>
+              <Field label="Where to show it">
+                <Select
+                  name="placement"
+                  defaultValue="hero"
+                  options={[
+                    { value: "hero", label: "Top banner (big slider at the top)" },
+                    { value: "gallery", label: "Photo gallery (families section)" },
+                  ]}
+                />
+              </Field>
+              <Field label="Title (optional)"><Input name="title" /></Field>
+              <Field label="Subtitle (optional)"><Input name="subtitle" /></Field>
               <Field label="Link (optional)"><Input name="link_url" placeholder="/register" /></Field>
               <Field label="Sort order"><Input name="sort_order" type="number" defaultValue={0} /></Field>
               <Field label="Image (wide, JPG/PNG/WebP, max 5 MB)"><Input name="image" type="file" accept="image/jpeg,image/png,image/webp" required /></Field>
-              <div className="flex items-end"><Button>Upload slider</Button></div>
+              <div className="flex items-end"><Button>Upload image</Button></div>
             </form>
           </Card>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -67,7 +81,10 @@ export default async function AdminCms({ searchParams }: { searchParams: Promise
               <Card key={s.id} className="space-y-2 p-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={cmsMediaUrl(s.image_path)} alt="" className="h-36 w-full rounded-lg object-cover" />
-                <p className="font-medium">{s.title || "(no title)"} <Badge tone={s.is_active ? "green" : "gray"}>{s.is_active ? "Live" : "Hidden"}</Badge></p>
+                <p className="font-medium">{s.title || "(no title)"}{" "}
+                  <Badge tone={s.is_active ? "green" : "gray"}>{s.is_active ? "Live" : "Hidden"}</Badge>{" "}
+                  <Badge tone="blue">{s.placement === "gallery" ? "Gallery" : "Top banner"}</Badge>
+                </p>
                 <div className="flex gap-2">
                   <form action={toggleSlider}>
                     <input type="hidden" name="id" value={s.id} />
