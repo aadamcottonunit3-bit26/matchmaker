@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { signedUrl } from "@/lib/storage";
 import { logAdminAction } from "@/lib/admin";
-import { ageLabel } from "@/lib/age";
+import { ageLabel, ageLabelFromYears } from "@/lib/age";
 import { toIntlDigits } from "@/lib/contact";
 import {
   BODY_TYPES, MARRIAGE_TIMELINE, MOTHER_TONGUES, PERSONALITY_TRAITS, SKIN_TONES, optionLabel,
@@ -44,8 +44,9 @@ export default async function AdminProfileReview({
   const p = data as Profile | null;
   if (!p) notFound();
 
-  const [{ data: priv }, { data: history }] = await Promise.all([
+  const [{ data: priv }, { data: birth }, { data: history }] = await Promise.all([
     supabase.from("profile_private").select("*").eq("profile_id", id).maybeSingle(),
+    supabase.from("profile_birth").select("dob").eq("profile_id", id).maybeSingle(),
     supabase.from("moderation_log").select("*").eq("profile_id", id).order("created_at", { ascending: false }),
   ]);
 
@@ -76,7 +77,8 @@ export default async function AdminProfileReview({
           <Card>
             <h2 className="mb-2 font-semibold">Profile</h2>
             <Row k="Registration no." v={p.reg_no} />
-            <Row k="Age" v={ageLabel(p.dob)} />
+            <Row k="Age" v={birth ? ageLabel(birth.dob) : ageLabelFromYears(p.age_years)} />
+            <Row k="Date of birth" v={birth?.dob} />
             <Row k="Gender" v={labelize(p.gender)} />
             <Row k="Marital status" v={labelize(p.marital_status)} />
             <Row k="City" v={p.city} />

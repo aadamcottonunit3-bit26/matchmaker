@@ -15,7 +15,7 @@ function pick(list: { value: string }[], raw: string | null) {
 /** Parses the shared ProfileFields form section. Returns either an error string or DB-ready values. */
 export function parseProfileForm(fd: FormData):
   | { error: string }
-  | { values: Record<string, unknown> } {
+  | { values: Record<string, unknown>; dob: string } {
   const parsed = profileFieldsSchema.safeParse({
     full_name: fd.get("full_name"),
     gender: fd.get("gender"),
@@ -65,9 +65,11 @@ export function parseProfileForm(fd: FormData):
   const city = parsed.data.city;
   const preferred = Array.from(new Set([city, ...fd.getAll("preferred_cities").map(String)]));
 
+  const { dob, ...profileData } = parsed.data;
   return {
+    dob,
     values: {
-      ...parsed.data,
+      ...profileData,
       preferred_cities: preferred,
       pref_marital,
       education: strOrNull(fd.get("education")),

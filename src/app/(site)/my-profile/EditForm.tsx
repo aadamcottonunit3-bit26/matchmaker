@@ -1,15 +1,21 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { updateProfile } from "./actions";
 import { ProfileFields } from "@/components/ProfileFields";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import type { Profile } from "@/lib/types";
 import { compressFormImages } from "@/lib/client-image";
 
-export function EditForm({ profile }: { profile: Profile }) {
+export function EditForm({ profile, dob }: { profile: Profile; dob: string | null }) {
   const [state, action, pending] = useActionState(updateProfile, undefined);
   const [preparing, setPreparing] = useState(false);
+  const msgRef = useRef<HTMLDivElement>(null);
+
+  // The save button is at the bottom of a long form: bring the result message into view.
+  useEffect(() => {
+    if (state) msgRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [state]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,12 +28,14 @@ export function EditForm({ profile }: { profile: Profile }) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
-      {state?.ok && <Alert tone="success">Profile saved.</Alert>}
+      <div ref={msgRef} className="scroll-mt-28">
+        {state?.error && <Alert tone="error">{state.error}</Alert>}
+        {state?.ok && <Alert tone="success">✓ Your profile was updated successfully.</Alert>}
+      </div>
       {profile.is_verified && (
         <Alert tone="info">Your name, gender and date of birth are locked because your profile is verified. Contact support to change them.</Alert>
       )}
-      <ProfileFields defaults={profile} />
+      <ProfileFields defaults={{ ...profile, dob }} />
       <Card>
         <h2 className="mb-4 text-lg font-semibold">Photo privacy</h2>
         <div className="grid gap-4 sm:grid-cols-2">

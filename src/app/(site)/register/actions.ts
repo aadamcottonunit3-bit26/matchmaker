@@ -73,6 +73,10 @@ export async function register(_prev: RegisterState, fd: FormData): Promise<Regi
     });
     if (pErr) throw new Error(pErr.message);
 
+    // The exact date of birth lives in a private table; profiles only keep the age (set by a trigger).
+    const { error: bErr } = await admin.from("profile_birth").insert({ profile_id: uid, dob: parsed.dob });
+    if (bErr) throw new Error(bErr.message);
+
     const { error: prErr } = await admin.from("profile_private").insert({
       profile_id: uid,
       cnic_number: cnic,

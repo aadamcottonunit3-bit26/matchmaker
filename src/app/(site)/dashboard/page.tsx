@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireMe, isActiveMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { rankMatches } from "@/lib/matching";
-import { ageLabel } from "@/lib/age";
+import { ageLabelFromYears } from "@/lib/age";
 import type { Profile } from "@/lib/types";
 import { Alert, Card, EmptyState, LinkButton, PageContainer, PageTitle } from "@/components/ui";
 import { ProfileCard } from "@/components/ProfileCard";
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
 
   return (
     <PageContainer>
-      <PageTitle title={`Assalam-o-Alaikum, ${me.full_name.split(" ")[0]}`} subtitle={ageLabel(me.dob)} />
+      <PageTitle title={`Assalam-o-Alaikum, ${me.full_name.split(" ")[0]}`} subtitle={ageLabelFromYears(me.age_years)} />
       <div className="mb-6 space-y-3">
         <StatusBanner me={me} />
         {active && me.valid_until && (

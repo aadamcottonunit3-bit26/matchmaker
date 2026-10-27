@@ -12,7 +12,8 @@ export interface Profile {
   full_name: string;
   gender: Gender;
   marital_status: MaritalStatus;
-  dob: string;
+  /** Age in whole years. The exact date of birth is private (public.profile_birth). */
+  age_years: number | null;
   city: string;
   preferred_cities: string[];
   education: string | null;

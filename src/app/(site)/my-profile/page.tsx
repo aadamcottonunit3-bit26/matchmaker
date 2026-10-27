@@ -1,6 +1,7 @@
 import { BadgeCheck, CalendarDays, Hash, MapPin } from "lucide-react";
 import { requireMe } from "@/lib/auth";
-import { ageLabel } from "@/lib/age";
+import { ageLabelFromYears } from "@/lib/age";
+import { createClient } from "@/lib/supabase/server";
 import { formatDay, cn } from "@/lib/utils";
 import { memberStatus, statusPillClass } from "@/lib/member-status";
 import { PageContainer } from "@/components/ui";
@@ -11,6 +12,9 @@ export const metadata = { title: "My profile" };
 export default async function MyProfilePage() {
   const me = await requireMe();
   const status = memberStatus(me);
+  // Your own date of birth (private table: only you and the admin can read it)
+  const supabase = await createClient();
+  const { data: birth } = await supabase.from("profile_birth").select("dob").eq("profile_id", me.id).maybeSingle();
   return (
     <PageContainer className="max-w-3xl">
       {/* Member card: same pattern as the admin members list */}
@@ -23,7 +27,7 @@ export default async function MyProfilePage() {
               <span className="truncate">{me.full_name}</span>
               {me.is_verified && <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-600" aria-label="Verified" />}
             </h1>
-            <p className="text-sm text-stone-600">{ageLabel(me.dob)}</p>
+            <p className="text-sm text-stone-600">{ageLabelFromYears(me.age_years)}</p>
           </div>
           <span className={cn("shrink-0 rounded-md px-2 py-1 text-[11px] font-bold uppercase tracking-wide", statusPillClass[status.tone])}>
             {status.label}
@@ -37,7 +41,7 @@ export default async function MyProfilePage() {
           )}
         </div>
       </div>
-      <EditForm profile={me} />
+      <EditForm profile={me} dob={birth?.dob ?? null} />
     </PageContainer>
   );
 }

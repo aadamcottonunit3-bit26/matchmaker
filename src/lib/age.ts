@@ -32,6 +32,12 @@ export function ageLabel(dob: string | Date, on: Date = new Date()): string {
   return `${age} Years (Turning ${age + 1} on next birthday)`;
 }
 
+/** Same label from a stored age (other members only ever see the age, never the date of birth). */
+export function ageLabelFromYears(age: number | null | undefined): string {
+  if (age == null) return "";
+  return `${age} Years (Turning ${age + 1} on next birthday)`;
+}
+
 /** Minimum DOB allowed for registration (18+). Use for <input type="date" max=...> */
 export function maxDobForAdult(on: Date = new Date()): string {
   const d = new Date(on.getFullYear() - 18, on.getMonth(), on.getDate());

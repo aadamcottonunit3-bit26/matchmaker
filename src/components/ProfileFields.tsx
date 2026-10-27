@@ -93,7 +93,9 @@ function TraitPicker({ defaults }: { defaults: string[] }) {
   );
 }
 
-export function ProfileFields({ defaults }: { defaults?: Partial<Profile> }) {
+export type ProfileDefaults = Partial<Profile> & { dob?: string | null };
+
+export function ProfileFields({ defaults }: { defaults?: ProfileDefaults }) {
   const d = defaults ?? {};
   const [dob, setDob] = useState(d.dob ?? "");
   const validDob = /^\d{4}-\d{2}-\d{2}$/.test(dob);

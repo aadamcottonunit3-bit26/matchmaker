@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { BadgeCheck, MapPin, Briefcase, GraduationCap, Lock } from "lucide-react";
 import { Badge } from "@/components/ui";
-import { calcAge } from "@/lib/age";
 import { labelize } from "@/lib/utils";
 import { formatHeight } from "@/lib/height";
 import type { Profile } from "@/lib/types";
@@ -44,7 +43,7 @@ export function ProfileCard({ profile, percent }: { profile: Profile; percent?: 
         </h3>
         {profile.reg_no && <p className="font-mono text-xs text-stone-400">ID: {profile.reg_no}</p>}
         <p className="text-sm text-stone-600">
-          {calcAge(profile.dob)} yrs · {labelize(profile.marital_status)}
+          {profile.age_years ?? "—"} yrs · {labelize(profile.marital_status)}
           {profile.height_cm ? ` · ${formatHeight(profile.height_cm)}` : ""}
         </p>
         <p className="flex items-center gap-1.5 text-sm text-stone-600"><MapPin className="h-4 w-4" />{profile.city}</p>

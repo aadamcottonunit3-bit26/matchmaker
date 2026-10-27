@@ -7,7 +7,10 @@ export async function GET(req: Request) {
   if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
-  const { data, error } = await createAdminClient().rpc("expire_profiles");
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("expire_profiles");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ expired: data });
+  // ages change on birthdays: keep profiles.age_years current (a failure here must not hide the expiry result)
+  const { data: aged } = await admin.rpc("refresh_ages");
+  return NextResponse.json({ expired: data, agesUpdated: aged ?? null });
 }

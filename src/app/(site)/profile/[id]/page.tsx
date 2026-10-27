@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRequestInfo } from "@/lib/request-info";
 import { scoreMatch } from "@/lib/matching";
-import { ageLabel } from "@/lib/age";
+import { ageLabelFromYears } from "@/lib/age";
 import { formatPKR, labelize } from "@/lib/utils";
 import {
   BODY_TYPES, MARRIAGE_TIMELINE, MOTHER_TONGUES, PERSONALITY_TRAITS, REPORT_REASONS, SKIN_TONES, optionLabel,
@@ -146,7 +146,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                 <Badge tone="green"><BadgeCheck className="h-3.5 w-3.5" /> Verified</Badge>
               )}
             </h1>
-            <p className="text-stone-600">{ageLabel(profile.dob)}</p>
+            <p className="text-stone-600">{ageLabelFromYears(profile.age_years)}</p>
             {profile.reg_no && <p className="mt-0.5 font-mono text-xs text-stone-500">ID: {profile.reg_no}</p>}
             {match && (
               <p className="mt-2 inline-block rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-800">
