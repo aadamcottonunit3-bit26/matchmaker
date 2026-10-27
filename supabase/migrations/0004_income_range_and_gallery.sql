@@ -10,3 +10,6 @@ alter table public.profiles
 alter table public.cms_sliders
   add column if not exists placement text not null default 'hero'
     check (placement in ('hero','gallery'));
+
+-- Make the API see the new columns/tables immediately
+notify pgrst, 'reload schema';

@@ -1,0 +1,15 @@
+-- State: 0001..0007 applied (profiles.dob is gone).
+select test.run('AFTER 0007','profiles table no longer has a dob column','authenticated','00000000-0000-0000-0000-00000000000a',$q$select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='dob'$q$,'count=0');
+select test.run('AFTER 0007','"select *" on profiles as member B exposes no exact date of birth','authenticated','00000000-0000-0000-0000-00000000000b',$q$select * from public.profiles where id='00000000-0000-0000-0000-00000000000a'$q$,'count=1');
+select test.run('AFTER 0007','member B can still read A''s AGE','authenticated','00000000-0000-0000-0000-00000000000b',$q$select 1 from public.profiles where id='00000000-0000-0000-0000-00000000000a' and age_years is not null$q$,'count=1');
+select test.run('AFTER 0007','member B still cannot read A''s date of birth','authenticated','00000000-0000-0000-0000-00000000000b',$q$select 1 from public.profile_birth where profile_id='00000000-0000-0000-0000-00000000000a'$q$,'count=0');
+select test.run('AFTER 0007','matching still works (A sees B)','authenticated','00000000-0000-0000-0000-00000000000a',$q$select * from public.match_candidates()$q$,'count=1');
+select test.run('AFTER 0007','member A sets own role = admin','authenticated','00000000-0000-0000-0000-00000000000a',$q$update public.profiles set role='admin' where id='00000000-0000-0000-0000-00000000000a'$q$,'fail');
+select test.run('AFTER 0007','member A points photo_path at B''s photo','authenticated','00000000-0000-0000-0000-00000000000a',$q$update public.profiles set photo_path='00000000-0000-0000-0000-00000000000b/photo.jpg' where id='00000000-0000-0000-0000-00000000000a'$q$,'fail');
+select test.run('AFTER 0007','verified member A changes own gender directly','authenticated','00000000-0000-0000-0000-00000000000a',$q$update public.profiles set gender='female' where id='00000000-0000-0000-0000-00000000000a'$q$,'fail');
+select test.run('AFTER 0007','member A fakes own age_years','authenticated','00000000-0000-0000-0000-00000000000a',$q$update public.profiles set age_years=20 where id='00000000-0000-0000-0000-00000000000a'$q$,'fail');
+select test.run('AFTER 0007','verified member A edits own about (legit)','authenticated','00000000-0000-0000-0000-00000000000a',$q$update public.profiles set about='Still fine' where id='00000000-0000-0000-0000-00000000000a'$q$,'ok');
+select test.run('AFTER 0007','member A still cannot read own/other CNIC row','authenticated','00000000-0000-0000-0000-00000000000a',$q$select 1 from public.profile_private$q$,'count=0');
+select test.run('AFTER 0007','ADMIN still reads all CNIC rows','authenticated','00000000-0000-0000-0000-0000000000ad',$q$select 1 from public.profile_private$q$,'count=3');
+select test.run('AFTER 0007','ADMIN can still verify a pending profile','authenticated','00000000-0000-0000-0000-0000000000ad',$q$select public.admin_verify_profile('00000000-0000-0000-0000-00000000000c')$q$,'ok');
+select test.report('AFTER 0007');

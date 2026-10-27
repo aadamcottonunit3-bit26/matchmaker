@@ -87,3 +87,6 @@ begin
   end if;
   return new;
 end $$;
+
+-- Make the API see the new columns/tables immediately
+notify pgrst, 'reload schema';

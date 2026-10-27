@@ -62,3 +62,8 @@ Run `supabase/migrations/0003_personal_details.sql` once in Supabase before depl
 
 ## 7. Upgrade 0004 (income range + home gallery)
 Run `supabase/migrations/0004_income_range_and_gallery.sql` once in Supabase before deploying. It adds the upper end of the "monthly income required" range and lets the admin choose where a home image is shown (top banner or gallery) from Admin → Setup → Home images.
+
+## 8. Security hardening (0005, 0006, 0007)
+See `SECURITY_REPORT.md`. Order: run `0005` -> run `0006` -> push this code -> test -> run `0007`.
+CNIC data is admin-only; other members only see an age, never the exact date of birth.
+Local database tests: `supabase/tests/run.sh` (needs a local PostgreSQL). Live checks: `supabase/tests/LIVE_CHECKLIST.md`.

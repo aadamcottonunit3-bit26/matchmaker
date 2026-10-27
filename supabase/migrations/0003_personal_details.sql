@@ -12,3 +12,6 @@ alter table public.profiles
   add column if not exists mother_tongue text check (mother_tongue is null or mother_tongue in ('urdu','punjabi','saraiki','sindhi','pashto','balochi','other')),
   add column if not exists hobbies text check (hobbies is null or length(hobbies) <= 200),
   add column if not exists personality text[] not null default '{}';
+
+-- Make the API see the new columns/tables immediately
+notify pgrst, 'reload schema';
