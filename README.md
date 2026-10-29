@@ -67,3 +67,9 @@ Run `supabase/migrations/0004_income_range_and_gallery.sql` once in Supabase bef
 See `SECURITY_REPORT.md`. Order: run `0005` -> run `0006` -> push this code -> test -> run `0007`.
 CNIC data is admin-only; other members only see an age, never the exact date of birth.
 Local database tests: `supabase/tests/run.sh` (needs a local PostgreSQL). Live checks: `supabase/tests/LIVE_CHECKLIST.md`.
+
+## 9. Security round 2 (0008, 0009, password reset, rate limits, upload checks, headers)
+Order: `0005` -> `0006` -> `0008` -> push this code -> test -> `0007` -> `0009`. Details: `SECURITY_REPORT.md`.
+Forgot / reset password: set `NEXT_PUBLIC_SITE_URL` and follow `FORGOT_PASSWORD_SETUP.md` (Supabase redirect URL, email template, SMTP).
+CNIC encryption is only a proposal: `ENCRYPTION_PROPOSAL.md`.
+Tests: `supabase/tests/run.sh` (database), `npx tsx tests/security/image-validation.ts` (uploads), `tests/e2e/` (browser end-to-end harness).

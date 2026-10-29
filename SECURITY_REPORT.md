@@ -1,72 +1,134 @@
-# Security report — Rishta Bureau (Step 1: CNIC privacy + database hardening)
+# Security report — Rishta Bureau / Matchmaker PK
 
-Scope of this report: the source code in the project zip and its SQL migrations. **The live Supabase project, Vercel
-settings and Git history were not accessible**, so nothing below claims the live system is secure. "Pass (local)" means
-the check passed on a local PostgreSQL 16 with a simulated Supabase layer (roles, `auth.uid()`, storage tables) using
-synthetic accounts. It is not a test of the real Supabase Storage / PostgREST services.
+**Scope.** The source code in this project and its SQL migrations. The live Supabase project, the Vercel settings and the
+Git history were **not accessible**, so nothing here claims the live site is secure. "Pass (local)" means it passed on a
+local PostgreSQL 16 + a real PostgREST + the real Next.js app, with **simulated** Supabase Auth/Storage and synthetic
+accounts. There is no Git repository in the zip, so no remediation branch could be created: commit these changes on a new
+branch yourself before merging.
 
-## Decisions taken with the owner
-1. Members never need to read their own CNIC again → CNIC data is **admin-only**.
-2. CNIC images are kept as a record, visible to **admin only** (no automatic deletion).
-3. CNIC number: admin-only now; encryption / retention policy to be decided later.
-4. Other members see **age only** ("38 Years (Turning 39 on next birthday)"), never the exact date of birth.
+## 1. Decisions followed
+CNIC number/images: admin-only, kept as records, no automatic deletion · encryption: proposal only (`ENCRYPTION_PROPOSAL.md`,
+awaiting approval) · other members see an age only, never the date of birth · least privilege for all other personal data.
 
-## CNIC-related locations
-| Kind | Where |
+## 2. Executive summary
+Before this work a member could, through the public API: read their own CNIC row and images, change their CNIC number after
+verification, repoint their photo to another member's file (blur bypass), pre-set a plan or validity, change locked
+identity fields, read every member's exact date of birth, income and other profile data in bulk, upload arbitrary files
+straight into storage, and a visitor could call admin functions. All of these were **reproduced on the local database** and are
+**fixed and re-tested**. Abuse protection (rate limits), upload validation, security headers, admin-page guards and a secure
+password-reset flow were added. Open items: CNIC encryption (proposal), admin MFA, Supabase dashboard settings (manual), and
+everything that needs the live project.
+
+## 3. Findings (severity, evidence, status)
+| # | Sev. | Finding | Evidence | Fix | Status |
+|---|------|---------|----------|-----|--------|
+| 1 | High | Photo blur bypass: member edits `photo_path`, `/api/photos/<own id>` serves another member's original | trigger did not protect the column; reproduced | trigger pins the path to `<own id>/photo.jpg` (0005); the route ignores the stored path and reads `<verified owner id>/photo.jpg` | **Fixed**. Pass (local + e2e) |
+| 2 | High | Member could UPDATE own `profile_private` (CNIC number, file paths) | policy `private_update`; reproduced | no member write access at all (0005) | **Fixed**. Pass |
+| 3 | High | Plan / `valid_until` could be pre-set by the member | policy `profiles_insert_own` | self-insert removed (registration is server-side); entitlements are changed only by admin functions (0005) | **Fixed**. Pass |
+| 4 | Med | Verified members could change name/gender/DOB through the API | reproduced | database trigger freezes name and gender after verification; DOB is in a table members cannot write (0005, 0006) | **Fixed**. Pass |
+| 5 | Med | Members could read their own CNIC row and images | policies `private_select`, `cnic_owner_read` | admin-only SELECT on table and Storage (0005) | **Fixed**. Pass |
+| 6 | Med | Direct Storage uploads bypassing validation | policies `*_owner_insert` | policies removed; buckets limited to JPG/PNG/WebP 5 MB (0005) | **Fixed**. Policies Pass (local). Bucket limits **set, enforcement by real Storage Not Tested** |
+| 7 | Med | Upload checks trusted the declared type; CNIC kept EXIF/GPS | code | `src/lib/image.ts`: size, magic bytes, decoder agreement, no animation, pixel limits, **re-encode to a fresh JPEG** (drops EXIF/GPS and appended payloads); server-generated file names | **Fixed**. Pass (15 unit tests + e2e: stored copy has no EXIF/GPS) |
+| 8 | Med | Every active member could read every member's exact DOB | reproduced | DOB moved to `profile_birth` (owner + admin only); `profiles` keeps `age_years`, refreshed daily (0006, 0007) | **Fixed**. Pass (local + e2e: no DOB in HTML/RSC data/API) |
+| 9 | Med | Bulk scraping of members through the API (names, income, …) | `profiles_select` | members can read **only their own row** through the API (0009); other members' data is served by the server as a limited object (`src/lib/public-profiles.ts`): income as a **band**, no DOB/phone/CNIC/plan/internal columns; matching runs server-side (`match_candidates_for`, service role only); profile views, matches and photo downloads are rate limited | **Fixed**. Pass (local + e2e). Residual: a legitimate member can still view profiles one by one (limit 300/hour) |
+| 10 | Med | Registration revealed whether an email / CNIC exists | messages | one neutral message for both; rate limits | **Partly fixed**. Residual: success vs failure is still distinguishable; real prevention needs email verification before account creation (changes the sign-up flow: needs your approval) |
+| 11 | Med | No rate limiting | – | `public.rate_limit_hit()` (Postgres, shared by all serverless instances; keys are HMAC-hashed): login, registration, forgot/reset password, reset-link confirm, messages, new chats, photo requests, reports, shortlist, payments/receipts, photo uploads, profile views, matches, photo downloads (0008) | **Fixed**. Pass (local + e2e: reset, login, registration limits). Fails **open** if the limiter itself is unavailable (logged) |
+| 12 | Med | No security headers | `next.config.ts` | CSP, frame-ancestors/X-Frame-Options, nosniff, referrer policy, permissions policy, COOP, HSTS, no-store on private pages | **Fixed**. Pass (e2e: headers present, no CSP violation on public/member/admin pages). Residual: `script-src 'unsafe-inline'` (needed by Next.js; a nonce policy is a later step) |
+| 13 | Low | 7 admin pages relied on layout + RLS only | grep | `requireAdmin()` in every admin page | **Fixed**. Pass (e2e: member/anonymous turned away) |
+| 14 | Low | Messaging / photo requests to unverified, banned or admin users; re-assigning a photo request | policies | recipient must be a verified member, sender an active member (banned/expired cannot), request owner cannot re-assign (0005, 0009) | **Fixed**. Pass (local). There is no "block user" feature in the product |
+| 15 | Low | Anonymous callers could run admin functions / `match_candidates()` | `has_function_privilege` | EXECUTE revoked from `anon` (0005); matching is service-role only (0008/0009) | **Fixed**. Pass |
+| 16 | Feature | No forgot-password | – | `/forgot-password`, `/auth/confirm`, `/reset-password` (see `FORGOT_PASSWORD_SETUP.md`) | **Implemented**. Pass against **mock** Auth. Real Supabase e-mail flow **Not Tested** |
+| 17 | Med | CNIC number stored as plaintext | schema | proposal only | **Open — awaiting your approval** |
+| 18 | Med | Admin MFA, session re-authentication | – | recommended | **Open (manual)** |
+| 19 | Low | Cron secret compared with `!==` | code | constant-time comparison | **Fixed** |
+
+Re-checked existing controls: `npm audit --omit=dev` → **0 vulnerabilities** (re-run now) · no secret found in the source
+(pattern scan; Git history not available) · service-role key used only in `server-only` modules · `.env*` git-ignored ·
+admin role is a database column protected by a trigger, `user_metadata` unused · admin server actions use `requireAdmin` ·
+open redirect on `next` is validated · CNIC never logged, admin CNIC views are audit-logged without the value.
+
+## 4. CNIC data flow
+| Step | Where |
 |------|-------|
-| Table | `public.profile_private` (`cnic_number`, `cnic_front_path`, `cnic_back_path`, `selfie_path`, `phone`) |
-| Storage | private bucket `cnic-documents` (`<user id>/cnic-front.*`, `cnic-back.*`, `selfie.*`) |
-| Written by | `src/app/(site)/register/actions.ts` (service role, server only) |
-| Read by | `src/app/admin/profiles/[id]/page.tsx` (admin; signed URLs valid 5 min; each view is audit-logged as `view_cnic`, no CNIC value stored), `src/app/admin/profiles/page.tsx` (search; list shows a masked number), `src/lib/admin-members.ts` |
-| Not exposed | no API route or member page returns CNIC data (checked by reading all routes/actions) |
+| Entered | `register` form → server action `src/app/(site)/register/actions.ts` (HTTPS) |
+| Stored | table `public.profile_private` (`cnic_number`, `cnic_front_path`, `cnic_back_path`, `selfie_path`, `phone`), written only with the service role; images in private bucket `cnic-documents` as `<user id>/cnic-front.jpg`, `cnic-back.jpg`, `selfie.jpg` (re-encoded, no metadata) |
+| Read | admin only: `src/app/admin/profiles/[id]/page.tsx` (full number, signed image links valid 5 min, audit log `view_cnic`), `src/app/admin/profiles/page.tsx` (search; list shows `12345-*******-1`), `src/lib/admin-members.ts` |
+| Blocked | members/visitors: table (RLS + revoked privileges), Storage (policy), API routes (none returns CNIC), messages, logs, errors |
+| Retention | kept as verification records (your decision); deletion/minimisation rules are **pending policy decisions** |
 
-## Findings and status
-| ID | Severity | Finding | Evidence | Status |
-|----|----------|---------|----------|--------|
-| F-01 | High | A member could set `profiles.photo_path` to another member's file; `/api/photos/<own id>` then serves the original (blur bypass) | `photo_path` was not protected by the trigger; route trusts the column. Reproduced on local DB (BEFORE test 4) | **Fixed** in 0005 (path pinned to `<id>/photo.jpg`; tampered rows repaired). Pass (local) |
-| F-02 | High | Members could UPDATE their own `profile_private` row (change CNIC number / file paths after verification) | policy `private_update`; reproduced (BEFORE test 3) | **Fixed** in 0005 (no member write access at all). Pass (local) |
-| F-03 | High | A member could insert their own profile row with a pre-set `plan_id` / `valid_until`, giving a free plan once an admin verifies | policy `profiles_insert_own` did not restrict those columns | **Fixed** in 0005 (self-insert removed; registration uses the server). Pass (local) |
-| F-04 | Medium | Name / gender / date of birth were "locked after verification" only in the form; the API still allowed changes | reproduced (BEFORE test 5) | **Fixed** in 0005 (database trigger). Pass (local) |
-| F-05 | Medium | Members could read their own CNIC row and CNIC images | policies `private_select`, `cnic_owner_read`; reproduced | **Fixed** in 0005 (admin only). Pass (local) |
-| F-06 | Medium | Members could upload files straight into storage buckets, bypassing the server's checks | policies `*_owner_insert`; reproduced | **Fixed** in 0005 (policies removed; buckets limited to JPG/PNG/WebP, 5 MB). Policy part Pass (local); bucket limits set, enforcement by the real Storage service **Not tested** |
-| F-07 | Medium | Every active member could read every member's exact date of birth through the API | `select dob from profiles` (reproduced, BEFORE test 14) | **Fixed** in 0006/0007 + code (DOB moved to private `profile_birth`; profiles keep `age_years`). Pass (local) |
-| F-08 | Low | Logged-out visitors could call the admin RPCs and `match_candidates()` | `has_function_privilege('anon', …)` was true | **Fixed** in 0005. Pass (local) |
-| F-09 | Low | A member could insert an already-"reviewed" payment, open chats with unverified users/the admin, send photo requests to unverified users, or re-assign a photo request | policies too loose | **Fixed** in 0005. Pass (local) |
-| F-10 | Low | 7 admin pages rely on the layout and RLS only (no `requireAdmin()` in the page itself) | grep | **Open** (Step 3). Data is still protected by RLS |
-| F-11 | Medium | Upload checks trust the browser-declared file type; CNIC images are stored as uploaded (metadata kept) | `src/lib/storage.ts` | **Open** (Step 2) |
-| F-12 | Medium | No security headers (CSP, frame, nosniff, referrer) | `next.config.ts` | **Open** (Step 3) |
-| F-13 | Medium | Registration reveals whether an email / CNIC already exists; no email verification; no rate limiting | `register/actions.ts` | **Open** (Step 4) |
-| F-14 | Medium | CNIC number stored as plain text | schema | **Open** (decision pending: encrypt + hash for duplicate check) |
-| F-15 | Info | Name, city, income, profession of all verified members stay visible to active members by design | `profiles_select` | Open for discussion |
-| F-16 | Info | No password-reset flow in the app; no MFA for admin; Supabase Auth settings (public sign-ups, leaked-password protection) not verifiable | – | Manual / later |
+## 5. Changed files (this round)
+**New:** `src/lib/{image,rate-limit,public-profiles,site-url,password-reset}.ts`, `src/app/(auth)/{layout.tsx,forgot-password/*,reset-password/*}`,
+`src/app/auth/confirm/route.ts`, migrations `0008`, `0009`, rollback `0009`, `supabase/tests/{t_after8,t_after9,t_rate_limit}.sql`,
+`tests/security/image-validation.ts`, `tests/e2e/*`, `FORGOT_PASSWORD_SETUP.md`, `ENCRYPTION_PROPOSAL.md`.
+**Changed:** `src/lib/storage.ts` (verify + re-encode, server-only writes), `register/actions.ts` (limits, image checks, neutral duplicates),
+`login/{actions,LoginForm,page}` (limits, "Forgot password?" link, success banner), `billing/actions.ts`, `my-profile/actions.ts`, `admin/cms/actions.ts`
+(verified uploads), `profile/[id]/{page,actions}.tsx` (server-side limited profile, limits), `dashboard`, `shortlist`, `messages` (+`[id]`), `photo-requests`
+pages (use `public-profiles`), `components/ProfileCard.tsx`, `api/photos/[profileId]/route.ts`, `api/cron/expire/route.ts`, the 7 admin pages (guards), `next.config.ts`, `.env.example`.
+Earlier rounds: migrations `0005`–`0007`, DOB privacy, admin panel, etc.
 
-## Verified positives (by reading code / running tools)
-- `npm audit` (production dependencies): 0 vulnerabilities.
-- No secret found in the source; `.env*` is git-ignored; the service-role client is in a `server-only` module.
-- Admin role is a database column protected by a trigger; `user_metadata` is not used anywhere.
-- All server actions and API routes call a guard; the cron route needs `CRON_SECRET`.
-- The `next` redirect parameter is validated; passwords are handled by Supabase Auth.
-- CNIC is never written to logs; admin CNIC views are audit-logged without the value.
+## 6. Migrations (apply in this order)
+| File | Purpose | When |
+|------|---------|------|
+| `0005_security_hardening.sql` | CNIC admin-only, no member writes to private data, photo path pinned, identity freeze, payment/chat/photo-request rules, storage policies + bucket limits, function privileges | now |
+| `0006_private_birthdate.sql` | `profile_birth`, `age_years`, daily refresh, matching reads the private table | now |
+| `0008_rate_limits_and_server_matching.sql` | rate limiter, `is_verified_member()`, `match_candidates_for()` — all additive | now |
+| **deploy the new code, test** | | |
+| `0007_drop_profiles_dob.sql` | drops the old `profiles.dob` (refuses to run if any date would be lost) | after the deploy works |
+| `0009_restrict_member_profile_reads.sql` | members read only their own row through the API; policies no longer depend on reading others | after the deploy works |
 
-## Test results (local, synthetic accounts) — `supabase/tests/run.sh`
-BEFORE the fixes: 14 weaknesses/behaviours reproduced · AFTER 0005: 37/37 · AFTER 0006: 13/13 · AFTER 0007: 13/13 ·
-trigger checks (age sync on insert/update, under-18 refused) pass · migrations re-run safely · 0007 refuses to run
-if any profile would lose its date of birth · rollback scripts apply cleanly.
+Rollback: `supabase/rollback/0005_rollback.sql`, `0007_rollback.sql`, `0009_rollback.sql` (0006 and 0008 only add objects). Code: redeploy the previous Vercel deployment.
+Nothing in these migrations deletes users, CNIC records, messages, photos or receipts.
 
-## Deployment order (do not skip steps)
-1. Supabase → SQL Editor: run `0005_security_hardening.sql`. (Safe with the old and new code.)
-2. Run `0006_private_birthdate.sql`.
-3. Push the new code to GitHub (Vercel redeploys). Test: register a synthetic member, edit a profile, log in as admin and open the member (CNIC, selfie, DOB visible), check the dashboard shows an age.
-4. Run `0007_drop_profiles_dob.sql` **only after step 3 works**.
-5. Run `supabase/security/diagnostics.sql` and check: RLS true everywhere, buckets private, `anon` cannot run the admin functions.
+## 7. Environment variables (placeholders only)
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (**server only**), `CRON_SECRET`,
+`NEXT_PUBLIC_SITE_URL` (new, needed for password-reset e-mails), optional `NEXT_PUBLIC_WHATSAPP_NUMBER`, `NEXT_PUBLIC_CONTACT_PHONE`.
 
-Rollback: `supabase/rollback/0005_rollback.sql`, `supabase/rollback/0007_rollback.sql` (0006 only adds objects; leaving it in place is harmless).
+## 8. Tests actually run (all local)
+| Suite | Command | Result |
+|-------|---------|--------|
+| Database / RLS / storage policies / triggers | `supabase/tests/run.sh <postgres url>` | BEFORE the fixes 14 weaknesses reproduced · AFTER 0005 **37/37** · 0006 **13/13** · 0008 **12/12** · 0007 **13/13** · 0009 **17/17** · age trigger, under-18 check, rate limiter behaviour OK · 0005/0006 re-run safely (0008/0009 re-run **not tested**) · 0007 safety stop and rollback scripts verified |
+| Upload validation | `npx tsx tests/security/image-validation.ts` | **15/15** (fake HTML, SVG, GIF, mismatched types, appended script, 100-megapixel bomb, too small/large, EXIF GPS removed, orientation) |
+| Browser end-to-end (real Next app + real PostgREST/Postgres + mock Auth/Storage) | `tests/e2e/` | **86/86** — reset flow (registered/unregistered email identical answer, rate limit, valid link from another browser, mismatch/short/reused password, reused/expired/invalid/wrong-type links, direct page access, old password rejected, new works, old sessions signed out, admin reset + login to /admin), member/admin access, privacy of other members' data in HTML and API, direct API tampering attempts, photo blur + tampered path, registration + upload checks + EXIF stripped, headers/CSP, login brute force |
+| Dependencies | `npm audit --omit=dev` | 0 vulnerabilities |
+| Static | `tsc --noEmit`, `eslint`, `next build` | clean |
 
-## Manual actions still needed (cannot be done from code)
-- Supabase → Authentication: **disable public sign-ups** (the server creates users with the service role) and enable leaked-password protection.
-- Enable MFA for the admin account(s) (Supabase supports TOTP); enforcing it in the app is a later step.
-- Check Vercel environment variables: `SUPABASE_SERVICE_ROLE_KEY` only on the server, never with a `NEXT_PUBLIC_` prefix. If it was ever pasted anywhere public, rotate it in Supabase.
-- Git history was not available to scan for secrets.
+## 9. Regression
+| Area | Result |
+|------|--------|
+| Registration (new member, uploads, auto login) | Pass (e2e) |
+| Login / logout, admin → /admin, member → /dashboard | Pass (e2e) |
+| Forgot / reset password | Pass against mock Auth; real Supabase **Not Tested** |
+| Matching, dashboard, profile page, shortlist | Pass (dashboard + profile page e2e; shortlist/messages/photo-request pages **compile and type-check, not browser-tested**) |
+| Messaging, photo requests, reports | Database rules Pass (local); UI actions **Not browser-tested** |
+| Verification by admin, payments approval | Database functions Pass (local); admin member/payments pages open (e2e); approve/reject buttons **Not browser-tested** |
+| Subscriptions (receipt upload) | Code updated and type-checked; **Not browser-tested** |
 
-## Not tested
-Live Supabase configuration, real Storage/PostgREST behaviour, Vercel deployment, Git history, MFA, rate limits, content-type spoofing on upload (Step 2), browser-level XSS/CSRF tests.
+## 10. Manual actions (need your Supabase / Vercel access)
+See `FORGOT_PASSWORD_SETUP.md` (Site URL, redirect URL, e-mail template, custom SMTP). Also: disable public sign-ups; enable leaked-password
+protection; MFA for admin accounts; set Vercel env vars (incl. `NEXT_PUBLIC_SITE_URL`) and redeploy; run `supabase/security/diagnostics.sql`
+and the checks in `supabase/tests/LIVE_CHECKLIST.md`; confirm in Supabase → Storage that all four buckets are private; rotate the
+service-role key if it was ever exposed. Git history was not scanned.
+
+## 11. Not tested / not verifiable here
+Live Supabase and Vercel configuration · real e-mail delivery and real GoTrue token behaviour (expiry, one-time use) · the PKCE
+(`?code=`) variant of the reset link · real Storage enforcement of bucket limits · MFA · email-scanner prefetch of reset links
+(a scanner that opens the link first would consume it; the user simply requests a new one) · production load/rate-limit tuning.
+
+## 12. Final checklist
+| Requirement | Status |
+|-------------|--------|
+| Only admins can view CNIC numbers and images (table, Storage, API) | Pass (local + e2e) · live **Not Tested** |
+| Members cannot read or alter CNIC data / paths | Pass |
+| Members cannot obtain another member's original private photo | Pass |
+| Members cannot manipulate plan, expiry or locked fields | Pass |
+| Exact DOB not exposed to other members | Pass |
+| Other private fields minimised in member-facing responses; scraping restricted | Pass (limits are per-member, see finding 9) |
+| Storage: private buckets, no direct uploads, validated content | Pass (local) · real Storage limits **Not Tested** |
+| Admin authorization on server + database; audit log without CNIC | Pass · MFA **Not Implemented** |
+| Rate limiting on sensitive endpoints | Pass (local + e2e) · production tuning **Not Tested** |
+| Security headers / CSP | Pass (e2e) · nonce-based CSP **Not Implemented** |
+| Registration privacy | **Partial** (neutral message; no e-mail verification) |
+| Forgot / reset password | Pass against mock Auth · real flow **Not Tested** |
+| Encryption of CNIC at rest (application level) | **Not Implemented — proposal awaiting approval** |
+| CNIC retention / deletion policy | **Pending decision** (records kept as instructed) |
+| Live production configuration | **Not Tested** |
