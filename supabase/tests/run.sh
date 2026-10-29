@@ -3,7 +3,7 @@
 # Needs a local PostgreSQL (13+) and a superuser connection URL, for example:
 #   ./supabase/tests/run.sh postgresql://postgres:postgres@localhost:5432/postgres
 # It creates a throw-away database "sectest", imitates the Supabase pieces (roles, auth.uid(), storage),
-# applies migrations 0001..0007 in order and runs the before/after tests with synthetic accounts.
+# applies migrations 0001..0009 in order and runs the before/after tests with synthetic accounts.
 set -u
 ADMIN_URL="${1:?usage: run.sh <postgres superuser url>}"
 HERE="$(cd "$(dirname "$0")" && pwd)"; M="$HERE/../migrations"
@@ -18,5 +18,10 @@ echo "== AFTER 0005 =="; q "$HERE/t_after5.sql" | grep -E "PASS|FAIL|passed" | s
 echo "== apply 0006 =="; q "$M/0006_private_birthdate.sql" | grep ERROR
 echo "== AFTER 0006 =="; q "$HERE/t_after6.sql" | grep -E "PASS|FAIL|passed" | sed 's/^psql:[^ ]* NOTICE:  //'
 echo "== trigger checks =="; q "$HERE/t_extra_triggers.sql" | grep NOTICE | sed 's/^psql:[^ ]* NOTICE:  //'
-echo "== apply 0007 =="; q "$M/0007_drop_profiles_dob.sql" | grep ERROR
+echo "== apply 0008 =="; q "$M/0008_rate_limits_and_server_matching.sql" | grep ERROR
+echo "== AFTER 0008 =="; q "$HERE/t_after8.sql" | grep -E "PASS|FAIL|passed" | sed 's/^psql:[^ ]* NOTICE:  //'
+echo "== rate limiter =="; q "$HERE/t_rate_limit.sql" | grep NOTICE | sed 's/^psql:[^ ]* NOTICE:  //'
+echo "== apply 0007 (after the new code is deployed) =="; q "$M/0007_drop_profiles_dob.sql" | grep ERROR
 echo "== AFTER 0007 =="; q "$HERE/t_after7.sql" | grep -E "PASS|FAIL|passed" | sed 's/^psql:[^ ]* NOTICE:  //'
+echo "== apply 0009 (after the new code is deployed) =="; q "$M/0009_restrict_member_profile_reads.sql" | grep ERROR
+echo "== AFTER 0009 =="; q "$HERE/t_after9.sql" | grep -E "PASS|FAIL|passed" | sed 's/^psql:[^ ]* NOTICE:  //'

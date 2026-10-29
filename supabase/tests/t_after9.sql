@@ -1,0 +1,19 @@
+-- State: everything applied (0005, 0006, 0008, 0007, 0009).
+select test.run('AFTER 0009','member A reads OWN profile row','authenticated','00000000-0000-0000-0000-00000000000a',$q$select 1 from public.profiles where id='00000000-0000-0000-0000-00000000000a'$q$,'count=1');
+select test.run('AFTER 0009','member A reads B''s profile row through the API','authenticated','00000000-0000-0000-0000-00000000000a',$q$select 1 from public.profiles where id='00000000-0000-0000-0000-00000000000b'$q$,'count=0');
+select test.run('AFTER 0009','member A tries to list ALL profiles ("scraping")','authenticated','00000000-0000-0000-0000-00000000000a',$q$select * from public.profiles$q$,'count=1');
+select test.run('AFTER 0009','logged-out visitor lists profiles','anon',null,$q$select * from public.profiles$q$,'count=0');
+select test.run('AFTER 0009','ADMIN still reads every profile','authenticated','00000000-0000-0000-0000-0000000000ad',$q$select * from public.profiles$q$,'count=4');
+select test.run('AFTER 0009','member A can no longer call the old match_candidates()','authenticated','00000000-0000-0000-0000-00000000000a',$q$select * from public.match_candidates()$q$,'fail');
+select test.run('AFTER 0009','service role matching still works (A sees B)','service_role',null,$q$select * from public.match_candidates_for('00000000-0000-0000-0000-00000000000a')$q$,'count=1');
+select test.run('AFTER 0009','member A opens a chat with verified B (legit, policy no longer reads profiles)','authenticated','00000000-0000-0000-0000-00000000000a',$q$insert into public.conversations(user_a,user_b) values ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-00000000000b')$q$,'ok');
+select test.run('AFTER 0009','member A opens a chat with PENDING C','authenticated','00000000-0000-0000-0000-00000000000a',$q$insert into public.conversations(user_a,user_b) values ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-00000000000c')$q$,'fail');
+select test.run('AFTER 0009','member A opens a chat with the ADMIN','authenticated','00000000-0000-0000-0000-00000000000a',$q$insert into public.conversations(user_a,user_b) values ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000ad')$q$,'fail');
+select test.run('AFTER 0009','member A requests B''s photo (legit)','authenticated','00000000-0000-0000-0000-00000000000a',$q$insert into public.photo_requests(requester_id,owner_id) values ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-00000000000b')$q$,'ok');
+select test.run('AFTER 0009','member A requests photo of PENDING C','authenticated','00000000-0000-0000-0000-00000000000a',$q$insert into public.photo_requests(requester_id,owner_id) values ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-00000000000c')$q$,'fail');
+select test.run('AFTER 0009','member A saves B to the shortlist (legit)','authenticated','00000000-0000-0000-0000-00000000000a',$q$insert into public.shortlists(user_id,profile_id) values ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-00000000000b')$q$,'ok');
+select test.run('AFTER 0009','member A edits own about (legit)','authenticated','00000000-0000-0000-0000-00000000000a',$q$update public.profiles set about='Still fine' where id='00000000-0000-0000-0000-00000000000a'$q$,'ok');
+select test.run('AFTER 0009','member A reads own date of birth (edit form)','authenticated','00000000-0000-0000-0000-00000000000a',$q$select 1 from public.profile_birth where profile_id='00000000-0000-0000-0000-00000000000a'$q$,'count=1');
+select test.run('AFTER 0009','member A still cannot read CNIC data','authenticated','00000000-0000-0000-0000-00000000000a',$q$select 1 from public.profile_private$q$,'count=0');
+select test.run('AFTER 0009','ADMIN verifies a pending profile (legit)','authenticated','00000000-0000-0000-0000-0000000000ad',$q$select public.admin_verify_profile('00000000-0000-0000-0000-00000000000c')$q$,'ok');
+select test.report('AFTER 0009');
