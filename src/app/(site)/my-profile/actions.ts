@@ -5,7 +5,9 @@ import { requireMe } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseProfileForm } from "@/lib/profile-form";
-import { uploadImage, validateImage } from "@/lib/storage";
+import { prepareImage, uploadBuffer } from "@/lib/storage";
+import { IMAGE_PROFILES } from "@/lib/image";
+import { TOO_MANY, allow } from "@/lib/rate-limit";
 
 export type EditState = { error?: string; ok?: boolean } | undefined;
 
@@ -23,9 +25,10 @@ export async function updateProfile(_prev: EditState, fd: FormData): Promise<Edi
 
   const photo = fd.get("photo") as File | null;
   if (photo && photo.size > 0) {
-    const err = validateImage(photo, "Photo");
-    if (err) return { error: err };
-    await uploadImage("profile-photos", `${me.id}/photo.jpg`, photo, { normalize: true });
+    if (!(await allow("photo-upload", me.id, 20, 3600))) return { error: TOO_MANY };
+    const img = await prepareImage(photo, "Photo", IMAGE_PROFILES.photo);
+    if (!img.ok) return { error: img.error };
+    await uploadBuffer("profile-photos", `${me.id}/photo.jpg`, img.buffer);
     values.photo_path = `${me.id}/photo.jpg`;
   }
 

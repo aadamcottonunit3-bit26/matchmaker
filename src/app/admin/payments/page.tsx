@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { signedUrl } from "@/lib/storage";
 import { namesFor } from "@/lib/admin";
 import { formatDate, formatPKR, labelize } from "@/lib/utils";
@@ -14,6 +15,7 @@ const TABS = [
 ];
 
 export default async function AdminPayments({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  await requireAdmin();
   const { tab: raw } = await searchParams;
   const tab = TABS.some((t) => t.key === raw) ? raw! : "pending";
   const supabase = await createClient();

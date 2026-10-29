@@ -3,9 +3,9 @@ import { BadgeCheck, MapPin, Briefcase, GraduationCap, Lock } from "lucide-react
 import { Badge } from "@/components/ui";
 import { labelize } from "@/lib/utils";
 import { formatHeight } from "@/lib/height";
-import type { Profile } from "@/lib/types";
+import type { PublicProfile } from "@/lib/public-profiles";
 
-export function ProfilePhoto({ profile, className }: { profile: Pick<Profile, "id" | "full_name">; className?: string }) {
+export function ProfilePhoto({ profile, className }: { profile: Pick<PublicProfile, "id" | "full_name">; className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -17,7 +17,7 @@ export function ProfilePhoto({ profile, className }: { profile: Pick<Profile, "i
   );
 }
 
-export function ProfileCard({ profile, percent }: { profile: Profile; percent?: number }) {
+export function ProfileCard({ profile, percent }: { profile: PublicProfile; percent?: number }) {
   return (
     <Link
       href={`/profile/${profile.id}`}

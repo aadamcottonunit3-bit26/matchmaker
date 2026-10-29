@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireMe } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getDisplayNames } from "@/lib/public-profiles";
 import { formatDate, labelize } from "@/lib/utils";
 import { Badge, Button, Card, EmptyState, PageContainer, PageTitle } from "@/components/ui";
 import { respondPhotoRequest } from "./actions";
@@ -16,12 +17,10 @@ export default async function PhotoRequestsPage() {
     supabase.from("photo_requests").select("id, status, created_at, owner_id").eq("requester_id", me.id).order("created_at", { ascending: false }),
   ]);
 
-  // Names are resolved through RLS (only verified members are visible)
+  // Names are looked up on the server for people the member already has a request with
   const ids = [...(incoming ?? []).map((r) => r.requester_id), ...(outgoing ?? []).map((r) => r.owner_id)];
-  const { data: people } = ids.length
-    ? await supabase.from("profiles").select("id, full_name").in("id", ids)
-    : { data: [] as { id: string; full_name: string }[] };
-  const name = (id: string) => people?.find((p) => p.id === id)?.full_name ?? "Member";
+  const people = await getDisplayNames(ids);
+  const name = (id: string) => people.get(id) ?? "Member";
 
   return (
     <PageContainer className="max-w-3xl">

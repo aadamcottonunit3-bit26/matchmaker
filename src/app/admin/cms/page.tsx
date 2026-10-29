@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { cmsMediaUrl } from "@/lib/cms";
 import { formatDate } from "@/lib/utils";
 import type { Plan } from "@/lib/types";
@@ -34,6 +35,7 @@ function PlanForm({ plan }: { plan?: Plan }) {
 }
 
 export default async function AdminCms({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  await requireAdmin();
   const { tab: raw } = await searchParams;
   const tab = TABS.some((t) => t.key === raw) ? raw! : "sliders";
   const supabase = await createClient();

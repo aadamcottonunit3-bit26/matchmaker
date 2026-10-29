@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { namesFor } from "@/lib/admin";
 import { formatDate, labelize } from "@/lib/utils";
 import { Badge, EmptyState, PageContainer, PageTitle, TabNav, TableWrap, Td, Th } from "@/components/ui";
@@ -11,6 +12,7 @@ const TABS = [
 ];
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  await requireAdmin();
   const { tab: raw } = await searchParams;
   const tab = TABS.some((t) => t.key === raw) ? raw! : "moderation";
   const supabase = await createClient();

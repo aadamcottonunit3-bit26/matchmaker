@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { allow } from "@/lib/rate-limit";
 
 /**
  * Serves a member's photo with privacy rules enforced on the server:
@@ -18,6 +19,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ profileId: str
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
+
+  // The id must be a UUID; the file read below is derived from the verified owner id, never from a stored path
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profileId)) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+  if (!(await allow("photo", user.id, 1500, 3600))) return new NextResponse("Too many requests", { status: 429 });
 
   const admin = createAdminClient();
   const [{ data: viewer }, { data: owner }] = await Promise.all([
@@ -46,7 +53,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ profileId: str
     showOriginal = reqRow?.status === "approved";
   }
 
-  const { data: file, error } = await admin.storage.from("profile-photos").download(owner.photo_path);
+  const { data: file, error } = await admin.storage.from("profile-photos").download(`${owner.id}/photo.jpg`);
   if (error || !file) return new NextResponse("Not found", { status: 404 });
 
   let body: Buffer = Buffer.from(await file.arrayBuffer());

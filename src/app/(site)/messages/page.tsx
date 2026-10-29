@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireMe } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getDisplayNames } from "@/lib/public-profiles";
 import { formatDate } from "@/lib/utils";
 import { Card, EmptyState, PageContainer, PageTitle } from "@/components/ui";
 
@@ -19,13 +20,11 @@ export default async function MessagesPage() {
   const ids = (convs ?? []).map((c) => c.id);
   const otherIds = (convs ?? []).map((c) => (c.user_a === me.id ? c.user_b : c.user_a));
 
-  const [{ data: msgs }, { data: people }] = await Promise.all([
+  const [{ data: msgs }, names] = await Promise.all([
     ids.length
       ? supabase.from("messages").select("conversation_id, body, created_at, sender_id").in("conversation_id", ids).order("created_at", { ascending: false }).limit(500)
       : Promise.resolve({ data: [] as { conversation_id: string; body: string; created_at: string; sender_id: string }[] }),
-    otherIds.length
-      ? supabase.from("profiles").select("id, full_name").in("id", otherIds)
-      : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+    getDisplayNames(otherIds),
   ]);
 
   const rows = (convs ?? []).map((c) => {
@@ -33,7 +32,7 @@ export default async function MessagesPage() {
     const last = msgs?.find((m) => m.conversation_id === c.id);
     return {
       id: c.id,
-      name: people?.find((p) => p.id === other)?.full_name ?? "Member",
+      name: names.get(other) ?? "Member",
       last,
       sortKey: last?.created_at ?? c.created_at,
     };

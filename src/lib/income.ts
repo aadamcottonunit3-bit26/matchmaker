@@ -42,3 +42,10 @@ export function incomeFit(
   if (hasMax && income > wantMax!) return 0.8; // earns more than asked: still a good fit, slightly lower
   return 1;
 }
+
+/** Other members see an income BAND, never the exact amount. */
+export function incomeBandLabel(income: number | null | undefined): string | null {
+  if (!income || income <= 0) return null;
+  const r = INCOME_RANGES.find((x) => (x.min === null || income >= x.min) && (x.max === null || income < x.max));
+  return r ? r.label : null;
+}

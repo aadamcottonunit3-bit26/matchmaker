@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { namesFor } from "@/lib/admin";
 import { formatDate } from "@/lib/utils";
@@ -7,6 +8,7 @@ import { EmptyState, PageContainer, PageTitle, TableWrap, Td, Th, buttonClass } 
 export const metadata = { title: "Admin · Message monitoring" };
 
 export default async function AdminMessages() {
+  await requireAdmin();
   const supabase = await createClient();
   const { data: convs } = await supabase.from("conversations").select("*").order("created_at", { ascending: false }).limit(200);
   const ids = (convs ?? []).map((c) => c.id);

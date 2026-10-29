@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdmin } from "@/lib/auth";
 import { Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { loadPrivate } from "@/lib/admin-members";
@@ -23,6 +24,7 @@ export default async function AdminProfiles({
 }: {
   searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
+  await requireAdmin();
   const { tab: rawTab, q } = await searchParams;
   const tab = TABS.some((t) => t.key === rawTab) ? rawTab! : "all";
   const search = (q ?? "").replace(/[%,()*\\]/g, "").trim().slice(0, 60);

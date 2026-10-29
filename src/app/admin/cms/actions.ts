@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { extOf, uploadImage, validateImage } from "@/lib/storage";
+import { prepareImage, uploadBuffer } from "@/lib/storage";
+import { IMAGE_PROFILES } from "@/lib/image";
 import { numOrNull, strOrNull } from "@/lib/validators";
 
 function done(tab: string) {
@@ -18,10 +19,11 @@ function done(tab: string) {
 export async function createSlider(fd: FormData) {
   await requireAdmin();
   const image = fd.get("image") as File | null;
-  if (validateImage(image, "Image")) return;
+  const img = await prepareImage(image, "Image", IMAGE_PROFILES.cms);
+  if (!img.ok) return;
   const placement = fd.get("placement") === "gallery" ? "gallery" : "hero";
-  const path = `sliders/${Date.now()}.${extOf(image!)}`;
-  await uploadImage("cms-media", path, image!);
+  const path = `sliders/${Date.now()}.jpg`;
+  await uploadBuffer("cms-media", path, img.buffer);
   const supabase = await createClient();
   await supabase.from("cms_sliders").insert({
     title: strOrNull(fd.get("title")),

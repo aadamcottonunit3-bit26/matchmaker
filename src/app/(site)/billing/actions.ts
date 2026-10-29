@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { requireMe } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { extOf, uploadImage, validateImage } from "@/lib/storage";
+import { prepareImage, uploadBuffer } from "@/lib/storage";
+import { IMAGE_PROFILES } from "@/lib/image";
+import { TOO_MANY, allow } from "@/lib/rate-limit";
 import { strOrNull } from "@/lib/validators";
 
 export type BillingState = { error?: string; ok?: boolean } | undefined;
@@ -19,16 +21,17 @@ export async function submitPayment(_prev: BillingState, fd: FormData): Promise<
   const receipt = fd.get("receipt") as File | null;
 
   if (!["jazzcash", "easypaisa", "bank_transfer"].includes(method)) return { error: "Select a payment method." };
-  const fileErr = validateImage(receipt, "Receipt");
-  if (fileErr) return { error: fileErr };
+  if (!(await allow("payment", me.id, 10, 3600))) return { error: TOO_MANY };
+  const img = await prepareImage(receipt, "Receipt", IMAGE_PROFILES.receipt);
+  if (!img.ok) return { error: img.error };
 
   // Price always comes from the database, never from the browser.
   const admin = createAdminClient();
   const { data: plan } = await admin.from("plans").select("id, price_pkr, is_active").eq("id", planId).maybeSingle();
   if (!plan || !plan.is_active || Number(plan.price_pkr) <= 0) return { error: "Select a paid plan." };
 
-  const path = `${me.id}/${Date.now()}.${extOf(receipt!)}`;
-  await uploadImage("payment-receipts", path, receipt!);
+  const path = `${me.id}/${Date.now()}.jpg`;
+  await uploadBuffer("payment-receipts", path, img.buffer);
 
   const supabase = await createClient();
   const { error } = await supabase.from("payments").insert({

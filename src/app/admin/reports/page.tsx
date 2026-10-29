@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdmin } from "@/lib/auth";
 import { Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { namesFor } from "@/lib/admin";
@@ -20,6 +21,7 @@ type Report = {
 };
 
 export default async function AdminReports({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  await requireAdmin();
   const { tab: rawTab } = await searchParams;
   const tab = rawTab === "resolved" ? "resolved" : "open";
   const supabase = await createClient();

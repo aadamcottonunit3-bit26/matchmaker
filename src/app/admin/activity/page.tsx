@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
 import { namesFor } from "@/lib/admin";
 import { formatDate } from "@/lib/utils";
 import { EmptyState, PageContainer, PageTitle, TableWrap, Td, Th } from "@/components/ui";
@@ -6,6 +7,7 @@ import { EmptyState, PageContainer, PageTitle, TableWrap, Td, Th } from "@/compo
 export const metadata = { title: "Admin · Activity" };
 
 export default async function AdminActivity({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  await requireAdmin();
   const { q } = await searchParams;
   const supabase = await createClient();
 

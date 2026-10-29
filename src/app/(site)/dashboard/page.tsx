@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireMe, isActiveMember } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { rankMatches } from "@/lib/matching";
+import { getMatches } from "@/lib/public-profiles";
 import { ageLabelFromYears } from "@/lib/age";
 import type { Profile } from "@/lib/types";
 import { Alert, Card, EmptyState, LinkButton, PageContainer, PageTitle } from "@/components/ui";
@@ -38,12 +37,8 @@ export default async function DashboardPage() {
   const me = await requireMe();
   const active = isActiveMember(me);
 
-  let matches: ReturnType<typeof rankMatches<Profile>> = [];
-  if (active) {
-    const supabase = await createClient();
-    const { data } = await supabase.rpc("match_candidates", { p_limit: 200 });
-    matches = rankMatches(me, (data as Profile[]) ?? []);
-  }
+  // Matching runs on the server; only the limited public fields of each match are used (lib/public-profiles.ts)
+  const matches = active ? await getMatches(me) : [];
 
   return (
     <PageContainer>

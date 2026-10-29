@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireMe, isActiveMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getDisplayNames } from "@/lib/public-profiles";
 import { formatDate, cn } from "@/lib/utils";
 import { Alert, PageContainer } from "@/components/ui";
 import { AutoRefresh } from "@/components/AutoRefresh";
@@ -18,8 +19,8 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
   if (!conv || (conv.user_a !== me.id && conv.user_b !== me.id)) notFound();
 
   const otherId = conv.user_a === me.id ? conv.user_b : conv.user_a;
-  const [{ data: other }, { data: messages }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name").eq("id", otherId).maybeSingle(),
+  const [otherNames, { data: messages }] = await Promise.all([
+    getDisplayNames([otherId]),
     supabase.from("messages").select("id, sender_id, body, created_at").eq("conversation_id", id).order("created_at").limit(500),
   ]);
 
@@ -27,7 +28,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     <PageContainer className="max-w-2xl">
       <AutoRefresh />
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">{other?.full_name ?? "Member"}</h1>
+        <h1 className="text-xl font-bold">{otherNames.get(otherId) ?? "Member"}</h1>
         <Link href="/messages" className="text-sm text-rose-700 hover:underline">← All chats</Link>
       </div>
 

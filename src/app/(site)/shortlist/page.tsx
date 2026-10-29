@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireMe, isActiveMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/lib/types";
+import { getShortlisted } from "@/lib/public-profiles";
 import { EmptyState, LinkButton, PageContainer, PageTitle } from "@/components/ui";
 import { ProfileCard } from "@/components/ProfileCard";
 
@@ -19,12 +19,7 @@ export default async function ShortlistPage() {
     .order("created_at", { ascending: false });
 
   const ids = (saved ?? []).map((r) => r.profile_id as string);
-  let profiles: Profile[] = [];
-  if (ids.length > 0) {
-    const { data } = await supabase.from("profiles").select("*").in("id", ids);
-    const byId = new Map(((data ?? []) as Profile[]).map((p) => [p.id, p]));
-    profiles = ids.map((id) => byId.get(id)).filter((p): p is Profile => !!p);
-  }
+  const profiles = await getShortlisted(ids);
 
   return (
     <PageContainer>

@@ -3,16 +3,15 @@ import { BadgeCheck, Bookmark, BookmarkCheck, Flag, Lock, MessageCircle } from "
 import { requireMe, isActiveMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getProfileForViewer } from "@/lib/public-profiles";
 import { getRequestInfo } from "@/lib/request-info";
-import { scoreMatch } from "@/lib/matching";
 import { ageLabelFromYears } from "@/lib/age";
-import { formatPKR, labelize } from "@/lib/utils";
+import { labelize } from "@/lib/utils";
 import {
   BODY_TYPES, MARRIAGE_TIMELINE, MOTHER_TONGUES, PERSONALITY_TRAITS, REPORT_REASONS, SKIN_TONES, optionLabel,
 } from "@/lib/constants";
 import { formatHeight } from "@/lib/height";
 import { incomeRangeLabel } from "@/lib/income";
-import type { Profile } from "@/lib/types";
 import { Alert, Badge, Card, Label, PageContainer, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/SubmitButton";
 import { ProfilePhoto } from "@/components/ProfileCard";
@@ -40,9 +39,17 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   if (!active) redirect("/dashboard");
 
   const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
-  const profile = data as Profile | null;
-  if (!profile) notFound();
+  // Other members' profiles come from the server with a limited set of fields (no exact income, DOB, contact)
+  const found = await getProfileForViewer(me, id);
+  if (found === "limited") {
+    return (
+      <PageContainer className="max-w-xl">
+        <Alert tone="warn">You are opening profiles very quickly. Please wait a few minutes and try again.</Alert>
+      </PageContainer>
+    );
+  }
+  if (!found) notFound();
+  const { profile, percent } = found;
 
   // Activity log: who viewed whom (written server-side with the service role)
   if (me.role !== "admin") {
@@ -71,7 +78,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
           supabase.from("profile_reports").select("id").eq("reporter_id", me.id).eq("reported_id", profile.id).maybeSingle(),
         ]);
 
-  const match = me.role === "admin" ? null : scoreMatch(me, profile);
+  const match = me.role === "admin" ? null : { percent };
   const photoLocked = profile.blur_photo && reqRow?.status !== "approved";
 
   return (
@@ -169,7 +176,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               <Row label="City" value={profile.city} />
               <Row label="Education" value={labelize(profile.education)} />
               <Row label="Profession" value={profile.profession} />
-              <Row label="Monthly income" value={profile.monthly_income_pkr ? formatPKR(profile.monthly_income_pkr) : null} />
+              <Row label="Monthly income" value={profile.income_band} />
               <Row label="Family background" value={labelize(profile.family_background)} />
               {profile.children_count !== null && (
                 <Row label="Children" value={profile.children_count === 0 ? "No children" : profile.children_count >= 6 ? "6 or more" : String(profile.children_count)} />
